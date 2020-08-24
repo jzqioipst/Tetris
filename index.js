@@ -9,8 +9,8 @@ const BOARD_HEIGHT = 22;
 const VIRTUAL_WIDTH = 12;
 const VIRTUAL_HEIGHT = 3;
 
-const BOARD_MARGIN_LEFT = 100;
-const BOARD_MARGIN_TOP = 100;
+const BOARD_MARGIN_LEFT = 120;
+const BOARD_MARGIN_TOP = 70;
 
 //BLOCK
 const BLOCK_SIZE = 25;
@@ -86,6 +86,15 @@ const RCHAIR = 35;  //ㄴ반대
 const MAX_WAIT = [75, 64, 54, 45, 37, 30, 24, 19, 15, 12, 9, 6, 3, 1, 0];   //레벨별 하강 속도
 const MAX_SURVIVAL = 75;    //충돌 후 생존시간
 
+//key value
+const MOVE_RIGHT = 0;
+const MOVE_LEFT = 1;
+const ROTATE_RIGHT = 2;
+const ROTATE_LEFT = 3;
+const DROP_IMMEDIATELY = 4;
+const DROP_FAST = 5;
+const HOLD = 6;
+
 //실제 게임 판
 let data = [];
 for (let y = 0; y < BOARD_HEIGHT; y++) {
@@ -133,6 +142,9 @@ let mine = {
     survival: MAX_SURVIVAL
 }
 
+let holdFlag = 0;
+let holdPatIndex = -1;
+
 //event
 let leftPressed = false;
 let upPressed = false;
@@ -142,6 +154,144 @@ let downPressed = false;
 let spacePressed = false;
 let fPressed = false;
 let dPressed = false;
+
+// export function executeAction(action) {
+//     switch(action) {
+//         case "moveRight":
+//             rightPressed = true;
+//             break;
+//         case "moveLeft":
+//             leftPressed = true;
+//             break;
+//         case "rotateRight":
+//             upPressed = true;
+//             break;
+//         case "rotateLeft":
+//             downPressed = true;
+//             break;
+//         case "drop":
+//             spacePressed = true;
+//             break;
+//         case "fastDown":
+//             fPressed = true;
+//             break;
+//         case "hold":
+//             dPressed = true;
+//             break;
+//     }
+// }
+// export function completeAction(action) {
+//     switch(action) {
+//         case "moveRight":
+//             rightPressed = false;
+//             break;
+//         case "moveLeft":
+//             leftPressed = false;
+//             break;
+//         case "rotateRight":
+//             upPressed = false;
+//             break;
+//         case "rotateLeft":
+//             downPressed = false;
+//             break;
+//         case "drop":
+//             spacePressed = false;
+//             break;
+//         case "fastDown":
+//             fPressed = false;
+//             break;
+//         case "hold":
+//             dPressed = false;
+//             break;
+//     }
+// }
+
+let KeyInfo = function(key, hesitate, delay, press) {
+    this.key = key;
+    this.hesitate = hesitate;
+    this.delay = delay;
+    this.press = press;
+}
+let keySet = [];
+function checkKeyPressed(key) {
+    switch (key) {
+        case MOVE_RIGHT:
+            if (rightPressed) {
+                return true;
+            }
+            break;
+        case MOVE_LEFT:
+            if (leftPressed) {
+                return true;
+            }
+            break;
+        case ROTATE_RIGHT:
+            if (upPressed) {
+                return true;
+            }
+            break;
+        case ROTATE_LEFT:
+            if (downPressed) {
+                return true;
+            }
+            break;
+        case DROP_IMMEDIATELY:
+            if (spacePressed) {
+                return true;
+            }
+            break;
+        case DROP_FAST:
+            if (fPressed) {
+                return true;
+            }
+            break;
+        case HOLD:
+            if (dPressed) {
+                return true;
+            }
+            break;
+    }
+
+    return false;
+}
+function controllKey(key, hesitateToChainMove, eachDelayDuringChainMove) {
+    let info = null;
+    for (let i = 0; i < keySet.length; i++) {
+        if (key == keySet[i].key) {
+            info = keySet[i];
+            break;
+        }
+    }
+    if (info == null) {
+        info = new KeyInfo(key, hesitateToChainMove, 0, false);
+        keySet.push(info);
+    }
+
+    if (checkKeyPressed(key)) {
+        if (info.press) {
+            if (0 < info.hesitate) {
+                info.hesitate--;
+            }
+            else if (0 < info.delay) {
+                info.delay--;
+            }
+            else {
+                info.delay = eachDelayDuringChainMove;
+                return true;
+            }
+        }
+        else {
+            info.press = true;
+            return true;
+        }
+    }
+    else if (info.press) {
+        info.press = false;
+        info.hesitate = hesitateToChainMove;
+    }
+
+    return false;
+}
 
 document.addEventListener("keydown", (e) => {
     if (e.keyCode == 37) {
@@ -205,6 +355,7 @@ function getNewBlock() {
     }
     nextPatIndex[2] = Math.floor(Math.random() * NUM_OF_PAT);
 
+    holdFlag = 0;
     mine.survival = MAX_SURVIVAL;
 
     if (canMove(mine.x, mine.y, mine.dir)) {
@@ -213,10 +364,14 @@ function getNewBlock() {
     return false;
 }
 
-function moveMineDown() {
-    mine.y++;
+function moveToDown() {
+    if (canMove(mine.x, mine.y + 1, mine.dir)) {
+        mine.y++;
 
-    return 0;
+        return true;
+    }
+
+    return false;
 }
 
 function canMove(dx, dy, dir) { //d = destination
@@ -251,13 +406,62 @@ function copyMineToData() {
     }
 }
 
+function downBlock(y) {
+    for (; -(VIRTUAL_HEIGHT - 1) <= y; y--) {
+        for (let x = 1; x < BOARD_WIDTH - 1; x++) {
+            if (-(VIRTUAL_HEIGHT - 1) == y) {
+                virData[Math.abs(y)][x] = BLANK;
+            }
+            else if (1 < y) {
+                data[y][x] = data[y - 1][x];
+            }
+            else if (y == 1) {
+                data[1][x] = virData[0][x];
+            }
+            else {
+                virData[Math.abs(y)][x] = virData[Math.abs(y) + 1][x];
+            }
+        }
+    }
+}
+
+function checkSameBlock() {
+    let clearLine = 0;
+
+    for (let y = BOARD_HEIGHT - 2; 0 < y; y--) {
+        let same = true;
+
+        for (let x = 1; x < BOARD_WIDTH - 1; x++) {
+            if (data[y][x] % 5 != BLOCK) {
+                same = false;
+                break;
+            }
+        }
+
+        if (same) {
+            downBlock(y);
+            clearLine++;
+
+            y++;
+        }
+    }
+
+    return clearLine;
+}
+
+function removeCompleteLine() {
+    let removeLine = checkSameBlock();
+
+    return true;
+}
+
 function goToWork() {
     if (canMove(mine.x, mine.y + 1, mine.dir)) {
         if (mine.wait != 0) {
             mine.wait--;
         }
         else {
-            moveMineDown();
+            moveToDown();
             mine.wait = MAX_WAIT[level - 1];
         }
     }
@@ -266,12 +470,18 @@ function goToWork() {
     }
     else {
         copyMineToData();
+        if (removeCompleteLine() == false) {
+            return false;
+        }
 
         if (getNewBlock() == false) {
             clearInterval(myTimer);
             alert("Game Over");
+            return false;
         }
     }
+
+    return true;
 }
 
 function moveToRight() {
@@ -364,8 +574,8 @@ function canRotate(dir) {
 }
 
 function rotateRight() {
-    let dir = mine.dir;
-    dir = ++dir % 4;
+    let dir = (mine.dir + 1) % 4;
+
     if (canRotate(dir)) {
         mine.dir = dir;
         mine.survival = MAX_SURVIVAL;
@@ -377,8 +587,8 @@ function rotateRight() {
 }
 
 function rotateLeft() {
-    let dir = mine.dir + 4;
-    dir = --dir % 4;
+    let dir = (mine.dir + 3) % 4;
+
     if (canRotate(dir)) {
         mine.dir = dir;
         mine.survival = MAX_SURVIVAL;
@@ -389,45 +599,79 @@ function rotateLeft() {
     return false;
 }
 
-//DELAY, keyDelay 모션 조작을 하기 전까지 임시 장치
-//key 반응이 너무 지나치게 민감하지 않도록 유도
-const MAX_DELAY = 2;
-let keyDelay = MAX_DELAY;
-let rkey = false, lkey = false, ukey = false, dkey = false;
-function manipulate() {
-    if (0 < keyDelay) {
-        if (rightPressed) {
-            rkey = true;
-        }
-        if (leftPressed) {
-            lkey = true;
-        }
-        if (downPressed) {
-            dkey = true;
-        }
-        if (upPressed) {
-            ukey = true;
-        }
-        keyDelay--;
-        return;
+function holdThisBlock() {
+    if (holdFlag == 1) {
+        return true;
     }
-    keyDelay = MAX_DELAY;
 
-    if (rkey) {
+    let tempPatIndex = holdPatIndex;
+    holdPatIndex = mine.patIndex;
+
+    if (tempPatIndex == -1) {
+        getNewBlock();
+    }
+    else {
+        mine.patIndex = tempPatIndex;
+        mine.x = 5;
+        mine.y = 1;
+        mine.dir = 0;
+
+        if (canMove(mine.x, mine.y, mine.dir) == false) {
+            return false;
+        }
+    }
+    mine.survival = MAX_SURVIVAL;
+    holdFlag = 1;
+
+    return true;
+}
+
+function moveToEnd() {
+    while (true) {
+        if (moveToDown() == false) {
+            copyMineToData();
+            if (removeCompleteLine() == false) {
+                return false;
+            }
+
+            break;
+        }
+    }
+
+    return getNewBlock();
+}
+
+function manipulate() {
+    if (controllKey(MOVE_RIGHT, 10, 0)) {
         moveToRight();
     }
-    if (lkey) {
+    if (controllKey(MOVE_LEFT, 10, 0)) {
         moveToLeft();
     }
 
-    if (ukey) {
+    if (controllKey(DROP_FAST, 10, 0)) {
+        moveToDown();
+    }
+    if (controllKey(DROP_IMMEDIATELY, 10, 5)) {
+        if (moveToEnd() == false) {
+            return false;
+        }
+    }
+
+    if (controllKey(ROTATE_RIGHT, 10, 10)) {
         rotateRight();
     }
-    if (dkey) {
+    if (controllKey(ROTATE_LEFT, 10, 10)) {
         rotateLeft();
     }
 
-    rkey = lkey = dkey = ukey = false;
+    if (controllKey(HOLD, 1000, 1000)) {
+        if (holdThisBlock()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function playGame() {
@@ -488,6 +732,12 @@ function drawRect(xpos, ypos, what) {
     ctx.closePath();
 }
 
+function drawText(text, fontSize, fontColor, x, y) {
+    ctx.fillStyle = fontColor;
+    ctx.font = fontSize;
+    ctx.fillText(text, x, y);
+}
+
 function drawData() {
     for (let y = 0; y < BOARD_HEIGHT; y++) {
         for (let x = 0; x < BOARD_WIDTH; x++) {
@@ -516,11 +766,46 @@ function drawMine() {
     }
 }
 
+function drawInfo() {
+    //Draw NextBlock
+    drawText("Next", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT + 325, BOARD_MARGIN_TOP + 30);
+    for (let j = 0; j < 3; j++) {
+        for (let i = 0; i < 4; i++) {
+            let x = (BOARD_WIDTH + 2) + SHAPE[nextPatIndex[j]][0][i].x;
+            let y = (3 + (3 * j)) + SHAPE[nextPatIndex[j]][0][i].y;
+
+            let xpos = BOARD_MARGIN_LEFT + (x * BLOCK_SIZE);
+            let ypos = BOARD_MARGIN_TOP + (y * BLOCK_SIZE);
+
+            let what = (nextPatIndex[j] + 1) * 5;
+            drawRect(xpos, ypos, what);
+        }
+    }
+
+    //Draw Hold
+    drawText("Hold", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT - 100, BOARD_MARGIN_TOP + 30);
+    if (holdPatIndex != -1) {
+        for (let i = 0; i < 4; i++) {
+            let x = -3 + SHAPE[holdPatIndex][0][i].x;
+            let y = 3 + SHAPE[holdPatIndex][0][i].y;
+
+            let xpos = BOARD_MARGIN_LEFT + (x * BLOCK_SIZE);
+            let ypos = BOARD_MARGIN_TOP + (y * BLOCK_SIZE);
+
+            let what = (holdPatIndex + 1) * 5;
+            drawRect(xpos, ypos, what);
+        }
+    }
+
+    //문자열 정보들
+}
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawData();
     drawMine();
+    drawInfo();
 
     requestAnimationFrame(draw);
 }
