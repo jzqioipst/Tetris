@@ -125,12 +125,15 @@ for (let y = 0; y < VIRTUAL_HEIGHT; y++) {
     }
 }
 
+//각종 게임 정보들
 let nextPatIndex = [];
 for (let i = 0; i < 3; i++) {
     nextPatIndex[i] = Math.floor(Math.random() * NUM_OF_PAT);
 }
 
 let level = 1;
+let goal = 10;
+let score = 0;
 
 let mine = {
     x: 5,
@@ -145,6 +148,7 @@ let mine = {
 let holdFlag = 0;
 let holdPatIndex = -1;
 
+
 //event
 let leftPressed = false;
 let upPressed = false;
@@ -157,55 +161,56 @@ let dPressed = false;
 
 // export function executeAction(action) {
 //     switch(action) {
-//         case "moveRight":
-//             rightPressed = true;
-//             break;
-//         case "moveLeft":
-//             leftPressed = true;
-//             break;
-//         case "rotateRight":
-//             upPressed = true;
-//             break;
-//         case "rotateLeft":
-//             downPressed = true;
-//             break;
-//         case "drop":
-//             spacePressed = true;
-//             break;
-//         case "fastDown":
-//             fPressed = true;
-//             break;
-//         case "hold":
-//             dPressed = true;
-//             break;
+//     case "moveRight":
+//         rightPressed = true;
+//         break;
+//     case "moveLeft":
+//         leftPressed = true;
+//         break;
+//     case "rotateRight":
+//         upPressed = true;
+//         break;
+//     case "rotateLeft":
+//         downPressed = true;
+//         break;
+//     case "drop":
+//         spacePressed = true;
+//         break;
+//     case "fastDown":
+//         fPressed = true;
+//         break;
+//     case "hold":
+//         dPressed = true;
+//         break;
 //     }
 // }
 // export function completeAction(action) {
 //     switch(action) {
-//         case "moveRight":
-//             rightPressed = false;
-//             break;
-//         case "moveLeft":
-//             leftPressed = false;
-//             break;
-//         case "rotateRight":
-//             upPressed = false;
-//             break;
-//         case "rotateLeft":
-//             downPressed = false;
-//             break;
-//         case "drop":
-//             spacePressed = false;
-//             break;
-//         case "fastDown":
-//             fPressed = false;
-//             break;
-//         case "hold":
-//             dPressed = false;
-//             break;
+//     case "moveRight":
+//         rightPressed = false;
+//         break;
+//     case "moveLeft":
+//         leftPressed = false;
+//         break;
+//     case "rotateRight":
+//         upPressed = false;
+//         break;
+//     case "rotateLeft":
+//         downPressed = false;
+//         break;
+//     case "drop":
+//         spacePressed = false;
+//         break;
+//     case "fastDown":
+//         fPressed = false;
+//         break;
+//     case "hold":
+//         dPressed = false;
+//         break;
 //     }
 // }
 
+//키감 조절기
 let KeyInfo = function(key, hesitate, delay, press) {
     this.key = key;
     this.hesitate = hesitate;
@@ -215,41 +220,41 @@ let KeyInfo = function(key, hesitate, delay, press) {
 let keySet = [];
 function checkKeyPressed(key) {
     switch (key) {
-        case MOVE_RIGHT:
-            if (rightPressed) {
-                return true;
-            }
-            break;
-        case MOVE_LEFT:
-            if (leftPressed) {
-                return true;
-            }
-            break;
-        case ROTATE_RIGHT:
-            if (upPressed) {
-                return true;
-            }
-            break;
-        case ROTATE_LEFT:
-            if (downPressed) {
-                return true;
-            }
-            break;
-        case DROP_IMMEDIATELY:
-            if (spacePressed) {
-                return true;
-            }
-            break;
-        case DROP_FAST:
-            if (fPressed) {
-                return true;
-            }
-            break;
-        case HOLD:
-            if (dPressed) {
-                return true;
-            }
-            break;
+    case MOVE_RIGHT:
+        if (rightPressed) {
+            return true;
+        }
+        break;
+    case MOVE_LEFT:
+        if (leftPressed) {
+            return true;
+        }
+        break;
+    case ROTATE_RIGHT:
+        if (upPressed) {
+            return true;
+        }
+        break;
+    case ROTATE_LEFT:
+        if (downPressed) {
+            return true;
+        }
+        break;
+    case DROP_IMMEDIATELY:
+        if (spacePressed) {
+            return true;
+        }
+        break;
+    case DROP_FAST:
+        if (fPressed) {
+            return true;
+        }
+        break;
+    case HOLD:
+        if (dPressed) {
+            return true;
+        }
+        break;
     }
 
     return false;
@@ -293,6 +298,7 @@ function controllKey(key, hesitateToChainMove, eachDelayDuringChainMove) {
     return false;
 }
 
+//키 이벤트 처리기
 document.addEventListener("keydown", (e) => {
     if (e.keyCode == 37) {
         leftPressed = true;
@@ -316,7 +322,6 @@ document.addEventListener("keydown", (e) => {
         dPressed = true;
     }
 });
-
 document.addEventListener("keyup", (e) => {
     if (e.keyCode == 37) {
         leftPressed = false;
@@ -341,9 +346,11 @@ document.addEventListener("keyup", (e) => {
     }
 });
 
-//draw
+
+//게임 시작
 draw();
 let myTimer = setInterval(playGame, 25);
+
 
 function getNewBlock() {
     mine.x = 5;
@@ -364,9 +371,13 @@ function getNewBlock() {
     return false;
 }
 
-function moveToDown() {
+function moveToDown(increaseScore) {
     if (canMove(mine.x, mine.y + 1, mine.dir)) {
         mine.y++;
+
+        if (increaseScore) {
+            score += 1;
+        }
 
         return true;
     }
@@ -452,6 +463,33 @@ function checkSameBlock() {
 function removeCompleteLine() {
     let removeLine = checkSameBlock();
 
+    switch (removeLine) {
+    case 1:
+        score += 100 * level;
+        break;
+    case 2:
+        score += 300 * level;
+        break;
+    case 3:
+        score += 500 * level;
+        break;
+    case 4:
+        score += 800 * level;
+        break;
+    }
+
+    goal -= removeLine;
+
+    if (goal <= 0) {
+        if (level == 15) {
+            return false;
+        }
+        else {
+            level++;
+            goal += 10;
+        }
+    }
+
     return true;
 }
 
@@ -461,7 +499,7 @@ function goToWork() {
             mine.wait--;
         }
         else {
-            moveToDown();
+            moveToDown(false);
             mine.wait = MAX_WAIT[level - 1];
         }
     }
@@ -548,18 +586,18 @@ function canRotate(dir) {
     }
     else {
         switch (mine.dir) {
-            case 0:
-                y--;
-                break;
-            case 1:
-                x++;
-                break;
-            case 2:
-                y++;
-                break;
-            case 3:
-                x--;
-                break;
+        case 0:
+            y--;
+            break;
+        case 1:
+            x++;
+            break;
+        case 2:
+            y++;
+            break;
+        case 3:
+            x--;
+            break;
         }
 
         if (canMove(x, y, dir)) {
@@ -628,13 +666,16 @@ function holdThisBlock() {
 
 function moveToEnd() {
     while (true) {
-        if (moveToDown() == false) {
+        if (moveToDown(false) == false) {
             copyMineToData();
             if (removeCompleteLine() == false) {
                 return false;
             }
 
             break;
+        }
+        else {
+            score += 2;
         }
     }
 
@@ -650,7 +691,7 @@ function manipulate() {
     }
 
     if (controllKey(DROP_FAST, 10, 0)) {
-        moveToDown();
+        moveToDown(true);
     }
     if (controllKey(DROP_IMMEDIATELY, 10, 5)) {
         if (moveToEnd() == false) {
@@ -683,46 +724,46 @@ function drawRect(xpos, ypos, what) {
     ctx.beginPath();
 
     switch (what) {
-        case BLANK:
-            ctx.fillStyle = "#C8C8C8";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case WALL:
-            ctx.fillStyle = "#000000";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case CEILING:
-            ctx.fillStyle = "#FFFFFF";
-            ctx.strokeStyle = "#FF0000";
-            break;
-        case STICK:
-            ctx.fillStyle = "#00D8FF";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case BOX:
-            ctx.fillStyle = "#FFE400";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case HAT:
-            ctx.fillStyle = "#660058";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case LCLIP:
-            ctx.fillStyle = "#FF0000";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case RCLIP:
-            ctx.fillStyle = "#1DDB16";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case LCHAIR:
-            ctx.fillStyle = "#0000FF";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
-        case RCHAIR:
-            ctx.fillStyle = "#FF8224";
-            ctx.strokeStyle = "#FFFFFF";
-            break;
+    case BLANK:
+        ctx.fillStyle = "#C8C8C8";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case WALL:
+        ctx.fillStyle = "#000000";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case CEILING:
+        ctx.fillStyle = "#FFFFFF";
+        ctx.strokeStyle = "#FF0000";
+        break;
+    case STICK:
+        ctx.fillStyle = "#00D8FF";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case BOX:
+        ctx.fillStyle = "#FFE400";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case HAT:
+        ctx.fillStyle = "#660058";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case LCLIP:
+        ctx.fillStyle = "#FF0000";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case RCLIP:
+        ctx.fillStyle = "#1DDB16";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case LCHAIR:
+        ctx.fillStyle = "#0000FF";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
+    case RCHAIR:
+        ctx.fillStyle = "#FF8224";
+        ctx.strokeStyle = "#FFFFFF";
+        break;
     }
 
     ctx.rect(xpos, ypos, BLOCK_SIZE, BLOCK_SIZE);
@@ -732,9 +773,10 @@ function drawRect(xpos, ypos, what) {
     ctx.closePath();
 }
 
-function drawText(text, fontSize, fontColor, x, y) {
-    ctx.fillStyle = fontColor;
+function drawText(text, fontSize, fontColor, x, y, align) {
     ctx.font = fontSize;
+    ctx.textAlign = align;
+    ctx.fillStyle = fontColor;
     ctx.fillText(text, x, y);
 }
 
@@ -766,9 +808,8 @@ function drawMine() {
     }
 }
 
-function drawInfo() {
-    //Draw NextBlock
-    drawText("Next", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT + 325, BOARD_MARGIN_TOP + 30);
+function drawNext() {
+    drawText("Next", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT + 360, BOARD_MARGIN_TOP + 30, "center");
     for (let j = 0; j < 3; j++) {
         for (let i = 0; i < 4; i++) {
             let x = (BOARD_WIDTH + 2) + SHAPE[nextPatIndex[j]][0][i].x;
@@ -781,9 +822,10 @@ function drawInfo() {
             drawRect(xpos, ypos, what);
         }
     }
+}
 
-    //Draw Hold
-    drawText("Hold", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT - 100, BOARD_MARGIN_TOP + 30);
+function drawHold() {
+    drawText("Hold", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT - 60, BOARD_MARGIN_TOP + 30, "center");
     if (holdPatIndex != -1) {
         for (let i = 0; i < 4; i++) {
             let x = -3 + SHAPE[holdPatIndex][0][i].x;
@@ -796,8 +838,22 @@ function drawInfo() {
             drawRect(xpos, ypos, what);
         }
     }
+}
 
-    //문자열 정보들
+function drawInfo() {
+    drawNext();
+    drawHold();    
+
+    //점수
+    drawText(score, "70px Arial", "#FF9600", BOARD_MARGIN_LEFT + 300, BOARD_MARGIN_TOP - 10, "right");
+
+    //목표 제거 라인 갯수
+    drawText("Goal", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT + 360, BOARD_MARGIN_TOP + 510, "center");
+    drawText(goal, "40px Arial", "#FF9600", BOARD_MARGIN_LEFT + 360, BOARD_MARGIN_TOP + 550, "center");
+
+    //레벨
+    drawText("Level", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT + 150, BOARD_MARGIN_TOP + 590, "center");
+    drawText(level, "40px Arial", "#FF9600", BOARD_MARGIN_LEFT + 150, BOARD_MARGIN_TOP + 630, "center");
 }
 
 function draw() {
