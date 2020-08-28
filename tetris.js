@@ -1,6 +1,6 @@
 //canvas
-let canvas = document.getElementById("gameCanvas");
-let ctx = canvas.getContext("2d");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
 //BOARD
 const BOARD_WIDTH = 12;
@@ -148,7 +148,6 @@ let mine = {
 let holdFlag = 0;
 let holdPatIndex = -1;
 
-
 //event
 let leftPressed = false;
 let upPressed = false;
@@ -158,6 +157,8 @@ let downPressed = false;
 let spacePressed = false;
 let fPressed = false;
 let dPressed = false;
+
+let pause = false;
 
 // export function executeAction(action) {
 //     switch(action) {
@@ -181,6 +182,10 @@ let dPressed = false;
 //         break;
 //     case "hold":
 //         dPressed = true;
+//         break;
+
+//     case "pause":
+//         puase = true;
 //         break;
 //     }
 // }
@@ -206,6 +211,10 @@ let dPressed = false;
 //         break;
 //     case "hold":
 //         dPressed = false;
+//         break;
+
+//     case "pause":
+//         puase = false;
 //         break;
 //     }
 // }
@@ -321,6 +330,10 @@ document.addEventListener("keydown", (e) => {
     else if (e.keyCode == 68) {
         dPressed = true;
     }
+
+    else if (e.keyCode == 27) {
+        pause = true;
+    }
 });
 document.addEventListener("keyup", (e) => {
     if (e.keyCode == 37) {
@@ -343,6 +356,10 @@ document.addEventListener("keyup", (e) => {
     }
     else if (e.keyCode == 68) {
         dPressed = false;
+    }
+
+    else if (e.keycode == 27) {
+        pause = false;
     }
 });
 
@@ -683,10 +700,10 @@ function moveToEnd() {
 }
 
 function manipulate() {
-    if (controllKey(MOVE_RIGHT, 10, 0)) {
+    if (controllKey(MOVE_RIGHT, 20, 0)) {
         moveToRight();
     }
-    if (controllKey(MOVE_LEFT, 10, 0)) {
+    if (controllKey(MOVE_LEFT, 20, 0)) {
         moveToLeft();
     }
 
@@ -699,10 +716,10 @@ function manipulate() {
         }
     }
 
-    if (controllKey(ROTATE_RIGHT, 10, 10)) {
+    if (controllKey(ROTATE_RIGHT, 20, 10)) {
         rotateRight();
     }
-    if (controllKey(ROTATE_LEFT, 10, 10)) {
+    if (controllKey(ROTATE_LEFT, 20, 10)) {
         rotateLeft();
     }
 
@@ -716,6 +733,10 @@ function manipulate() {
 }
 
 function playGame() {
+    if (pause) {
+        return;
+    }
+
     manipulate();
     goToWork();
 }
@@ -854,6 +875,11 @@ function drawInfo() {
     //레벨
     drawText("Level", "40px Arial", "#C4B73B", BOARD_MARGIN_LEFT + 150, BOARD_MARGIN_TOP + 590, "center");
     drawText(level, "40px Arial", "#FF9600", BOARD_MARGIN_LEFT + 150, BOARD_MARGIN_TOP + 630, "center");
+
+    //pause
+    if (pause) {
+        drawText("Level", "40px Arial", "#4B6464", BOARD_MARGIN_LEFT + 150, BOARD_MARGIN_TOP + 200, "center");
+    }
 }
 
 function draw() {
